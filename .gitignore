@@ -39,3 +39,41 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# ─── Data pipeline (local-only, not needed on Vercel) ───
+# Python virtual environment
+.venv/
+__pycache__/
+
+# Python scripts that push data into Supabase
+scripts/
+
+# Raw SDR data files
+data.txt
+
+# FAA source spreadsheet & lookup PDFs
+Search_Results.xlsx
+data/
+
+# ─────────────────────────────────────────────────────────
+# HOW TO RE-LOAD DATA AFTER UPDATING SOURCE FILES
+#
+# Prerequisites (one-time):
+#   python -m venv .venv && source .venv/bin/activate
+#   pip install httpx python-dotenv openpyxl pymupdf
+#   Copy .env with SUPABASE_URL and SUPABASE_KEY (service role)
+#
+# 1) Updated Search_Results.xlsx (new/changed ADs from FAA DRS)?
+#    python scripts/load_ads.py
+#    python scripts/populate_ad_model_mapping.py
+#
+# 2) Downloaded a new SDR text file from FAA?
+#    python scripts/load_data.py data.txt
+#
+# 3) Added/changed a lookup PDF in data/lookup/?
+#    No script needed — get_jasc_description.py reads them at
+#    import time. Just make sure the PDF is in data/lookup/.
+#
+# Order matters: run load_ads.py BEFORE populate_ad_model_mapping.py
+# All scripts are idempotent (safe to re-run).
+# ─────────────────────────────────────────────────────────

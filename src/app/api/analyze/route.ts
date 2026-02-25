@@ -2,13 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { fetchFAARegistry } from "@/lib/faaRegistry";
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY!;
-const GEMINI_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 
-const SYSTEM_PROMPT = `You are an FAA-certified Maintenance Inspector. Compare the provided Serial Number against the "Applicability" section of the AD. Determine if the aircraft falls within the affected range. Return a JSON with: "applicable" (boolean), "confidence" (0-100), and "reasoning" (e.g., "Serial Number 36617 falls within range 36216-36769").`;
-
-interface GeminiResult {
+interface AnalysisResult {
   applicable: boolean;
   confidence: number;
   reasoning: string;
@@ -42,64 +38,184 @@ async function fetchADContent(url: string): Promise<string> {
       .replace(/&amp;/g, "&")
       .replace(/\s+/g, " ")
       .trim();
-    return text.slice(0, 6000);
+    
+    // Try to extract REGULATORY TEXT section first (contains most detailed info)
+    const regMatch = text.match(/REGULATORY\s+TEXT[:\s]+([\s\S]*?)(?=EFFECTIVE|SUMMARY|BACKGROUND|$)/i);
+    if (regMatch && regMatch[1].length > 100) {
+      return regMatch[1].slice(0, 4000).trim();
+    }
+    
+    // Try Applicability section
+    const appMatch = text.match(/Applicability[:\s]+([\s\S]*?)(?=Effective|For Action|Special|REGULATORY|$)/i);
+    if (appMatch && appMatch[1].length > 100) {
+      return appMatch[1].slice(0, 4000).trim();
+    }
+    
+    // Fallback to first 4000 chars
+    return text.slice(0, 4000);
   } catch {
     return "";
   }
 }
 
-async function analyzeWithGemini(
+async function analyzeADLocally(
   serialNumber: string,
   model: string,
   adNumber: string,
   adText: string
-): Promise<GeminiResult> {
-  const fallback: GeminiResult = {
-    applicable: false,
-    confidence: 0,
-    reasoning: "LLM analysis unavailable — could not reach Gemini API.",
-  };
-
-  if (!adText) {
+): Promise<AnalysisResult> {
+  if (!adText || adText.length < 20) {
     return {
       applicable: false,
       confidence: 0,
-      reasoning: "AD text could not be retrieved for analysis.",
+      reasoning: "Insufficient AD data for analysis.",
     };
   }
 
-  try {
-    const userPrompt = `Aircraft Serial Number: ${serialNumber}\nAircraft Model: ${model}\nAD Number: ${adNumber}\n\nAD Full Text:\n${adText}`;
+  const textUpper = adText.toUpperCase();
+  const serialUpper = serialNumber.toUpperCase();
+  const serial = parseInt(serialNumber);
 
-    const res = await fetch(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        contents: [{ parts: [{ text: userPrompt }] }],
-        generationConfig: {
-          responseMimeType: "application/json",
-          temperature: 0.1,
-        },
-      }),
-      signal: AbortSignal.timeout(15000),
-    });
+  // Pattern 1: Explicit range "Serial numbers XXXXX through XXXXX"
+  const rangeMatch = textUpper.match(/serial\s+(?:numbers?)?\s*(\d+)\s+(?:through|thru|-|to)\s+(\d+)/i);
+  if (rangeMatch) {
+    const start = parseInt(rangeMatch[1]);
+    const end = parseInt(rangeMatch[2]);
+    
+    if (!isNaN(serial) && !isNaN(start) && !isNaN(end)) {
+      if (serial >= start && serial <= end) {
+        return {
+          applicable: true,
+          confidence: 95,
+          reasoning: `Serial Number ${serialNumber} falls within the affected range ${start}-${end}.`,
+        };
+      } else {
+        return {
+          applicable: false,
+          confidence: 90,
+          reasoning: `Serial Number ${serialNumber} is outside the affected range ${start}-${end}.`,
+        };
+      }
+    }
+  }
+
+  // Pattern 2: "All serial numbers" or "all aircraft"
+  if (/all\s+(?:serial\s+)?numbers|all\s+aircraft|all\s+airplanes|all\s+cessna/i.test(textUpper)) {
+    return {
+      applicable: true,
+      confidence: 90,
+      reasoning: `AD applies to all ${model} aircraft.`,
+    };
+  }
+
+  // Pattern 3: Specific serial number match
+  if (textUpper.includes(serialUpper)) {
+    return {
+      applicable: true,
+      confidence: 85,
+      reasoning: `Serial Number ${serialNumber} is specifically mentioned in AD.`,
+    };
+  }
+
+  // Pattern 4: Model/series specific without exclusions
+  if (/(?:cessna|model)\s+172|172\s+series/i.test(textUpper) && !/except|exclude|not applicable|not affected/i.test(textUpper)) {
+    return {
+      applicable: true,
+      confidence: 75,
+      reasoning: `AD applies to Cessna 172 series aircraft.`,
+    };
+  }
+
+  // Pattern 5: Look for exclusion patterns
+  if (/not\s+applicable|does\s+not\s+apply|excluded|exception|not\s+affected/i.test(textUpper)) {
+    return {
+      applicable: false,
+      confidence: 70,
+      reasoning: "AD contains exclusion criteria.",
+    };
+  }
+
+  // Pattern 6: S/N ranges with hyphens or "through"
+  const complexRangeMatch = textUpper.match(/s\.?n\.?\s*(?:ranges?|from)?\s*(\d+)\s*[-–]\s*(\d+)/i);
+  if (complexRangeMatch) {
+    const start = parseInt(complexRangeMatch[1]);
+    const end = parseInt(complexRangeMatch[2]);
+    if (!isNaN(serial) && !isNaN(start) && !isNaN(end)) {
+      if (serial >= start && serial <= end) {
+        return {
+          applicable: true,
+          confidence: 92,
+          reasoning: `Serial Number ${serialNumber} falls within range ${start}-${end}.`,
+        };
+      }
+    }
+  }
+
+  // Default: Unable to determine - return low confidence for Gemini fallback
+  return {
+    applicable: false,
+    confidence: 30,
+    reasoning: "Applicability could not be determined from available text.",
+  };
+}
+
+// Fallback to Gemini for better analysis
+async function analyzeADWithGemini(
+  serialNumber: string,
+  model: string,
+  adNumber: string,
+  adText: string
+): Promise<AnalysisResult> {
+  const fallback: AnalysisResult = {
+    applicable: false,
+    confidence: 0,
+    reasoning: "Analysis unavailable.",
+  };
+
+  if (!adText || !GEMINI_API_KEY) return fallback;
+
+  try {
+    const prompt = `Analyze if aircraft serial number ${serialNumber} (${model}) is affected by AD ${adNumber}.
+
+AD Applicability Text:
+${adText}
+
+Return ONLY this JSON format: {"applicable": boolean, "confidence": number (0-100), "reasoning": string (short sentence)}`;
+
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { 
+            responseMimeType: "application/json", 
+            temperature: 0.1,
+            maxOutputTokens: 200
+          },
+        }),
+        signal: AbortSignal.timeout(10000),
+      }
+    );
 
     if (!res.ok) {
-      console.error("Gemini API error:", res.status, await res.text());
+      console.error(`Gemini API error for ${adNumber}:`, res.status, await res.text());
       return fallback;
     }
-
+    
     const data = await res.json();
     const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-    const parsed: GeminiResult = JSON.parse(raw);
+    if (!raw) return fallback;
+    
+    const parsed = JSON.parse(raw);
     return {
       applicable: !!parsed.applicable,
       confidence: Math.min(Math.max(parsed.confidence ?? 0, 0), 100),
       reasoning: parsed.reasoning || "No reasoning provided.",
     };
   } catch (err) {
-    console.error("Gemini parse error:", err);
+    console.error(`Gemini parse error for ${adNumber}:`, err);
     return fallback;
   }
 }
@@ -201,12 +317,26 @@ export async function POST(request: NextRequest) {
       const analyses = await Promise.all(
         topADs.map(async (ad) => {
           const adText = ad.ad_link ? await fetchADContent(ad.ad_link) : "";
-          const result = await analyzeWithGemini(
+          // Try local analysis first
+          let result = await analyzeADLocally(
             serialNumber,
             modelRaw,
             ad.ad_number,
             adText
           );
+          // Always use Gemini if confidence is below 80%
+          if (result.confidence < 80 && adText.length > 20 && GEMINI_API_KEY) {
+            const geminiResult = await analyzeADWithGemini(
+              serialNumber,
+              modelRaw,
+              ad.ad_number,
+              adText
+            );
+            // Use Gemini if it returns a result
+            if (geminiResult.confidence > 0 || geminiResult.applicable) {
+              result = geminiResult;
+            }
+          }
           return {
             adNumber: ad.ad_number,
             subject: ad.subject ?? "",

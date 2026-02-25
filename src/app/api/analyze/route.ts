@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
+import { fetchFAARegistry } from "@/lib/faaRegistry";
+
+const AD_MODELS = ["172M", "172N"];
+const AD_76_21_06 = {
+  adNumber: "76-21-06",
+  subject: "Bendix Magneto Impulse Coupling",
+  models: AD_MODELS,
+  status: "Potential Requirement",
+  pdfPath: "/aeroguard/DRS_76-21-06.pdf",
+};
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,54 +24,70 @@ export async function POST(request: NextRequest) {
     }
 
     const normalizedTail = tailNumber.trim().toUpperCase();
+    const nNumber = normalizedTail.replace(/^N/, "");
+
+    const registry = await fetchFAARegistry(nNumber);
 
     const { data: tailMatches, error: tailError } = await supabase
       .from("sdr_reports")
       .select("*")
-      .ilike("tail_number", normalizedTail)
+      .ilike("tail_number", nNumber)
       .order("difficulty_date", { ascending: false })
       .limit(100);
 
     if (tailError) {
       console.error("tail_number query failed:", tailError);
-      return NextResponse.json(
-        { error: "Failed to query SDR reports." },
-        { status: 502 }
-      );
     }
 
-    if (tailMatches && tailMatches.length > 0) {
-      return NextResponse.json({
-        tailNumber: normalizedTail,
-        matchType: "tail_number",
-        count: tailMatches.length,
-        reports: tailMatches,
-      });
+    let reports = tailMatches ?? [];
+    let matchType = "tail_number";
+
+    if (reports.length === 0) {
+      const model = registry?.model ?? "172";
+      const { data: modelMatches } = await supabase
+        .from("sdr_reports")
+        .select("*")
+        .ilike("aircraft_model", `%${model}%`)
+        .order("difficulty_date", { ascending: false })
+        .limit(50);
+
+      reports = modelMatches ?? [];
+      matchType = "model_fallback";
     }
 
-    // Fallback: Cessna 172 model-wide reports
-    const { data: modelMatches, error: modelError } = await supabase
-      .from("sdr_reports")
-      .select("*")
-      .ilike("aircraft_model", "%172%")
-      .order("difficulty_date", { ascending: false })
-      .limit(50);
-
-    if (modelError) {
-      console.error("model fallback query failed:", modelError);
-      return NextResponse.json(
-        { error: "Failed to query fallback SDR reports." },
-        { status: 502 }
-      );
+    // Top 3 most common part failures
+    const partCounts: Record<string, number> = {};
+    for (const r of reports) {
+      const name = r.part_name;
+      if (name) partCounts[name] = (partCounts[name] || 0) + 1;
     }
+    const topFailures = Object.entries(partCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([partName, count]) => ({ partName, count }));
+
+    // AD applicability check
+    const registryModel = registry?.model?.toUpperCase() ?? "";
+    const adApplicable = AD_MODELS.some((m) => registryModel.includes(m));
+    const ads = adApplicable ? [AD_76_21_06] : [];
+
+    // Risk score: +50 per active AD, +10 per FAILED SDR (capped at 100)
+    const failedCount = reports.filter(
+      (r) => r.part_condition?.toUpperCase() === "FAILED"
+    ).length;
+    const rawScore = ads.length * 50 + failedCount * 10;
+    const riskScore = Math.min(rawScore, 100);
 
     return NextResponse.json({
       tailNumber: normalizedTail,
-      matchType: "model_fallback",
-      message:
-        "No records found for this tail number. Showing general Cessna 172 reports.",
-      count: modelMatches?.length ?? 0,
-      reports: modelMatches ?? [],
+      matchType,
+      registry: registry ?? null,
+      count: reports.length,
+      reports,
+      topFailures,
+      ads,
+      riskScore,
+      failedCount,
     });
   } catch (err) {
     console.error("analyze:", err);

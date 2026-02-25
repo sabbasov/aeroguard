@@ -8,7 +8,7 @@ const AD_76_21_06 = {
   subject: "Bendix Magneto Impulse Coupling",
   models: AD_MODELS,
   status: "Potential Requirement",
-  pdfPath: "/aeroguard/DRS_76-21-06.pdf",
+  pdfPath: "/DRS_76-21-06.pdf",
 };
 
 export async function POST(request: NextRequest) {

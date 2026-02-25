@@ -40,7 +40,7 @@ export default function Home() {
     setResult(null);
 
     try {
-      const res = await fetch("/aeroguard/api/analyze", {
+      const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tailNumber: trimmed }),

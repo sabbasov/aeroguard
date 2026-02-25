@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabaseClient";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function GET() {
   try {
     const [sdrResult, adResult] = await Promise.all([
-      supabase.from("sdr_reports").select("*", { count: "exact", head: true }),
-      supabase
+      supabaseAdmin.from("sdr_reports").select("*", { count: "exact", head: true }),
+      supabaseAdmin
         .from("airworthiness_directives")
         .select("*", { count: "exact", head: true }),
     ]);

@@ -71,11 +71,15 @@ export async function POST(request: NextRequest) {
     const adApplicable = AD_MODELS.some((m) => registryModel.includes(m));
     const ads = adApplicable ? [AD_76_21_06] : [];
 
-    // Risk score: +50 per active AD, +10 per FAILED SDR (capped at 100)
-    const failedCount = reports.filter(
-      (r) => r.part_condition?.toUpperCase() === "FAILED"
+    // Risk score: base 10, +40 per AD, +10 per FAILED/CRACKED, +2 per EXCESS WEAR
+    const failedCount = reports.filter((r) => {
+      const cond = r.part_condition?.toUpperCase() ?? "";
+      return cond === "FAILED" || cond === "CRACKED";
+    }).length;
+    const excessWearCount = reports.filter(
+      (r) => r.part_condition?.toUpperCase() === "EXCESS WEAR"
     ).length;
-    const rawScore = ads.length * 50 + failedCount * 10;
+    const rawScore = 10 + ads.length * 40 + failedCount * 10 + excessWearCount * 2;
     const riskScore = Math.min(rawScore, 100);
 
     return NextResponse.json({
@@ -88,6 +92,7 @@ export async function POST(request: NextRequest) {
       ads,
       riskScore,
       failedCount,
+      excessWearCount,
     });
   } catch (err) {
     console.error("analyze:", err);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface TopFailure {
   partName: string;
@@ -23,6 +23,14 @@ interface AnalysisResult {
   ads: AD[];
   riskScore: number;
   failedCount: number;
+  excessWearCount: number;
+}
+
+interface Stats {
+  sdrCount: number;
+  adCount: number;
+  aircraftTracked: number;
+  supabaseOk: boolean;
 }
 
 export default function Home() {
@@ -30,6 +38,14 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
+
+  useEffect(() => {
+    fetch("/api/stats")
+      .then((r) => r.json())
+      .then((d) => setStats(d))
+      .catch(() => setStats({ sdrCount: 0, adCount: 0, aircraftTracked: 56041, supabaseOk: false }));
+  }, []);
 
   async function handleAnalyze() {
     const trimmed = query.trim();
@@ -56,14 +72,14 @@ export default function Home() {
   }
 
   function riskColor(score: number) {
-    if (score >= 70) return "text-accent-rose";
-    if (score >= 40) return "text-accent-amber";
+    if (score > 70) return "text-accent-rose";
+    if (score > 30) return "text-accent-amber";
     return "text-accent-emerald";
   }
 
   function riskLabel(score: number) {
-    if (score >= 70) return "High";
-    if (score >= 40) return "Moderate";
+    if (score > 70) return "High";
+    if (score > 30) return "Moderate";
     return "Low";
   }
 
@@ -90,29 +106,17 @@ export default function Home() {
             </span>
           </div>
 
-          <div className="hidden items-center gap-6 text-sm font-medium text-foreground/60 sm:flex">
-            <a href="#" className="transition hover:text-accent-cyan">
-              Dashboard
-            </a>
-            <a href="#" className="transition hover:text-accent-cyan">
-              Reports
-            </a>
-            <a href="#" className="transition hover:text-accent-cyan">
-              Fleet
-            </a>
-            <div className="h-4 w-px bg-card-border" />
-            <a
-              href="https://github.com/sabuhiabbasov/aeroguard"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 rounded-lg border border-card-border bg-card-bg px-4 py-1.5 text-foreground/80 transition hover:border-accent-cyan/30 hover:text-accent-cyan"
-            >
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
-              </svg>
-              GitHub
-            </a>
-          </div>
+          <a
+            href="https://github.com/sabuhiabbasov/aeroguard"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 rounded-lg border border-card-border bg-card-bg px-4 py-1.5 text-foreground/80 transition hover:border-accent-cyan/30 hover:text-accent-cyan"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
+            </svg>
+            GitHub
+          </a>
         </div>
       </nav>
 
@@ -194,17 +198,23 @@ export default function Home() {
 
         <div className="mt-8 flex flex-wrap items-center justify-center gap-8 text-sm text-foreground/40">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-foreground/70">142,389</span>
+            <span className="font-mono text-foreground/70">
+              {stats ? stats.sdrCount.toLocaleString() : "—"}
+            </span>
             <span>SDRs Indexed</span>
           </div>
           <div className="h-4 w-px bg-card-border" />
           <div className="flex items-center gap-2">
-            <span className="font-mono text-foreground/70">8,217</span>
+            <span className="font-mono text-foreground/70">
+              {stats ? stats.adCount.toLocaleString() : "—"}
+            </span>
             <span>Active ADs</span>
           </div>
           <div className="h-4 w-px bg-card-border" />
           <div className="flex items-center gap-2">
-            <span className="font-mono text-foreground/70">56,041</span>
+            <span className="font-mono text-foreground/70">
+              {stats ? stats.aircraftTracked.toLocaleString() : "—"}
+            </span>
             <span>Aircraft Tracked</span>
           </div>
         </div>
@@ -466,9 +476,9 @@ export default function Home() {
 
                 <span
                   className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider ${
-                    result.riskScore >= 70
+                    result.riskScore > 70
                       ? "bg-accent-rose/10 text-accent-rose"
-                      : result.riskScore >= 40
+                      : result.riskScore > 30
                         ? "bg-accent-amber/10 text-accent-amber"
                         : "bg-accent-emerald/10 text-accent-emerald"
                   }`}
@@ -478,15 +488,25 @@ export default function Home() {
 
                 <div className="w-full space-y-2 text-xs text-foreground/50 mt-2">
                   <div className="flex justify-between border-t border-card-border pt-2">
+                    <span>Base</span>
+                    <span className="font-mono text-foreground/70">+10pts</span>
+                  </div>
+                  <div className="flex justify-between border-t border-card-border pt-2">
                     <span>Active ADs</span>
                     <span className="font-mono text-foreground/70">
-                      {result.ads.length} (+{result.ads.length * 50}pts)
+                      {result.ads.length} (+{result.ads.length * 40}pts)
                     </span>
                   </div>
                   <div className="flex justify-between border-t border-card-border pt-2">
-                    <span>Failed SDRs</span>
+                    <span>Failed / Cracked</span>
                     <span className="font-mono text-foreground/70">
                       {result.failedCount} (+{result.failedCount * 10}pts)
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-t border-card-border pt-2">
+                    <span>Excess Wear</span>
+                    <span className="font-mono text-foreground/70">
+                      {result.excessWearCount} (+{result.excessWearCount * 2}pts)
                     </span>
                   </div>
                 </div>
@@ -514,9 +534,21 @@ export default function Home() {
       <footer className="mt-auto border-t border-card-border bg-card-bg/40 backdrop-blur-sm">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 text-xs text-foreground/30">
           <span>© 2026 AeroGuard — Aviation Safety Intelligence</span>
-          <div className="flex items-center gap-1 font-mono">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent-emerald animate-pulse" />
-            All Systems Operational
+          <div className="flex items-center gap-1.5 font-mono">
+            <span
+              className={`inline-block h-1.5 w-1.5 rounded-full animate-pulse ${
+                stats === null
+                  ? "bg-foreground/20"
+                  : stats.supabaseOk
+                    ? "bg-accent-emerald"
+                    : "bg-accent-amber"
+              }`}
+            />
+            {stats === null
+              ? "Connecting…"
+              : stats.supabaseOk
+                ? "All Systems Operational"
+                : "Supabase Connection Issue"}
           </div>
         </div>
       </footer>

@@ -107,7 +107,7 @@ export default function Home() {
           </div>
 
           <a
-            href="https://github.com/sabuhiabbasov/aeroguard"
+            href="https://github.com/sabbasov/aeroguard"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 rounded-lg border border-card-border bg-card-bg px-4 py-1.5 text-foreground/80 transition hover:border-accent-cyan/30 hover:text-accent-cyan"

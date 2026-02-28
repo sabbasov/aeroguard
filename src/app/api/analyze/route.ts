@@ -34,6 +34,7 @@ async function fetchADContent(url: string): Promise<string> {
       parsed.protocol !== "https:" ||
       !ALLOWED_AD_HOSTS.includes(parsed.hostname)
     ) {
+      console.warn("Blocked fetch to disallowed AD host:", parsed.hostname);
       return "";
     }
     const res = await fetch(url, {

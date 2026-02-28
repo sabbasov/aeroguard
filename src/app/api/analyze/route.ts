@@ -4,6 +4,14 @@ import { fetchFAARegistry } from "@/lib/faaRegistry";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 
+const TAIL_NUMBER_RE = /^[A-Z0-9]{1,6}$/;
+const ALLOWED_AD_HOSTS = ["www.federalregister.gov", "rgl.faa.gov", "drs.faa.gov"];
+
+/** Escape special LIKE/ILIKE pattern characters so they match literally. */
+function escapeLikePattern(value: string): string {
+  return value.replace(/[%_\\]/g, "\\$&");
+}
+
 interface AnalysisResult {
   applicable: boolean;
   confidence: number;
@@ -21,6 +29,13 @@ interface ADWithAnalysis {
 
 async function fetchADContent(url: string): Promise<string> {
   try {
+    const parsed = new URL(url);
+    if (
+      parsed.protocol !== "https:" ||
+      !ALLOWED_AD_HOSTS.includes(parsed.hostname)
+    ) {
+      return "";
+    }
     const res = await fetch(url, {
       headers: {
         "User-Agent":
@@ -235,6 +250,13 @@ export async function POST(request: NextRequest) {
     const normalizedTail = tailNumber.trim().toUpperCase();
     const nNumber = normalizedTail.replace(/^N/, "");
 
+    if (!TAIL_NUMBER_RE.test(nNumber)) {
+      return NextResponse.json(
+        { error: "Invalid tail number format." },
+        { status: 400 }
+      );
+    }
+
     const registry = await fetchFAARegistry(nNumber);
     const serialNumber = registry?.serialNumber ?? "UNKNOWN";
     const modelRaw = registry?.model ?? "";
@@ -243,7 +265,7 @@ export async function POST(request: NextRequest) {
     const { data: tailMatches, error: tailError } = await supabaseAdmin
       .from("sdr_reports")
       .select("*")
-      .ilike("tail_number", nNumber)
+      .ilike("tail_number", escapeLikePattern(nNumber))
       .order("difficulty_date", { ascending: false })
       .limit(100);
 
@@ -257,7 +279,7 @@ export async function POST(request: NextRequest) {
       const { data: modelMatches } = await supabaseAdmin
         .from("sdr_reports")
         .select("*")
-        .ilike("aircraft_model", `%${model}%`)
+        .ilike("aircraft_model", `%${escapeLikePattern(model)}%`)
         .order("difficulty_date", { ascending: false })
         .limit(50);
 

@@ -7,6 +7,10 @@
 [![Supabase](https://img.shields.io/badge/Supabase-Postgres-3ECF8E?logo=supabase)](https://supabase.com)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38bdf8?logo=tailwindcss)](https://tailwindcss.com)
 
+## Preview
+
+![AeroGuard Homepage](./docs/screenshot.png)
+
 ---
 
 ## Overview

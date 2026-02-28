@@ -458,7 +458,7 @@ Top Failures: ${result.topFailures.map(f => `${f.partName} (${f.count}x)`).join(
               </div>
 
               {loading ? (
-                <ScanningState />
+                <RiskScoreSkeleton />
               ) : result ? (
                 <div className="flex flex-1 flex-col items-center justify-center gap-4 py-6">
                   <div className="relative flex h-28 w-28 items-center justify-center">
@@ -574,7 +574,7 @@ Top Failures: ${result.topFailures.map(f => `${f.partName} (${f.count}x)`).join(
             </div>
 
             {loading ? (
-              <ScanningState />
+              <FailureAnalyticsSkeleton />
             ) : result && result.topFailures.length > 0 ? (
               <div className="flex flex-1 flex-col gap-3">
                 <p className="text-xs font-medium text-foreground/50 uppercase tracking-wider mb-1">
@@ -648,7 +648,7 @@ Top Failures: ${result.topFailures.map(f => `${f.partName} (${f.count}x)`).join(
             </div>
 
             {loading ? (
-              <ScanningState />
+              <ADComplianceSkeleton />
             ) : result && result.ads.length > 0 ? (
               <div className="flex flex-1 flex-col gap-3">
                 <p className="text-xs font-medium text-foreground/50 uppercase tracking-wider mb-1">
@@ -833,6 +833,67 @@ function EmptyCard({
         </svg>
       </div>
       <p className="text-sm text-foreground/30">{text}</p>
+    </div>
+  );
+}
+
+function RiskScoreSkeleton() {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-4 py-6 animate-pulse">
+      <div className="h-28 w-28 rounded-full bg-foreground/10" />
+      <div className="h-5 w-20 rounded-full bg-foreground/10" />
+      <div className="w-full space-y-2 mt-2">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="flex justify-between border-t border-card-border pt-2">
+            <div className="h-3 w-24 rounded bg-foreground/10" />
+            <div className="h-3 w-12 rounded bg-foreground/10" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FailureAnalyticsSkeleton() {
+  return (
+    <div className="flex flex-1 flex-col gap-3 animate-pulse">
+      <div className="h-3 w-40 rounded bg-foreground/10 mb-1" />
+      {[1, 2, 3].map((i) => (
+        <div
+          key={i}
+          className="flex items-center justify-between rounded-lg border border-card-border bg-card-bg/50 px-4 py-3"
+        >
+          <div className="flex items-center gap-3">
+            <div className="h-6 w-6 rounded-full bg-foreground/10" />
+            <div className="h-3 w-36 rounded bg-foreground/10" />
+          </div>
+          <div className="h-3 w-8 rounded bg-foreground/10" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ADComplianceSkeleton() {
+  return (
+    <div className="flex flex-1 flex-col gap-3 animate-pulse">
+      <div className="h-3 w-44 rounded bg-foreground/10 mb-1" />
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="rounded-lg border border-card-border bg-card-bg/50 p-4">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 h-8 w-8 shrink-0 rounded-lg bg-foreground/10" />
+            <div className="flex-1 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-20 rounded bg-foreground/10" />
+                <div className="h-3 w-24 rounded-full bg-foreground/10" />
+              </div>
+              <div className="h-3 w-32 rounded bg-foreground/10" />
+              <div className="h-3 w-48 rounded bg-foreground/10" />
+              <div className="h-14 w-full rounded-md bg-foreground/10" />
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

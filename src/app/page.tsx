@@ -497,7 +497,7 @@ Top Failures: ${result.topFailures.map(f => `${f.partName} (${f.count}x)`).join(
                     <div className="flex justify-between border-t border-card-border pt-2">
                       <span>Applicable ADs (AI)</span>
                       <span className="font-mono text-foreground/70">
-                        +{result.applicableCount * 5}pts
+                        +{result.applicableCount * 40}pts
                       </span>
                     </div>
                     <div className="flex justify-between border-t border-card-border pt-2">
@@ -509,7 +509,7 @@ Top Failures: ${result.topFailures.map(f => `${f.partName} (${f.count}x)`).join(
                     <div className="flex justify-between border-t border-card-border pt-2">
                       <span>Excess Wear</span>
                       <span className="font-mono text-foreground/70">
-                        +{result.excessWearCount * 8}pts
+                        +{result.excessWearCount * 2}pts
                       </span>
                     </div>
                   </div>

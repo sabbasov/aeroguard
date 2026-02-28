@@ -5,6 +5,29 @@ import { fetchFAARegistry } from "@/lib/faaRegistry";
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 
 const TAIL_NUMBER_RE = /^[A-Z0-9]{1,6}$/;
+
+// Simple in-memory rate limiter (resets on server restart / cold start)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_MAX = 10;
+const RATE_LIMIT_WINDOW_MS = 60_000;
+
+function getRateLimitedIP(request: NextRequest): boolean {
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+    request.headers.get("x-real-ip") ??
+    "unknown";
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return false; // not limited
+  }
+
+  entry.count += 1;
+  if (entry.count >= RATE_LIMIT_MAX) return true; // limited
+  return false;
+}
 const ALLOWED_AD_HOSTS = ["www.federalregister.gov", "rgl.faa.gov", "drs.faa.gov"];
 
 /** Escape special LIKE/ILIKE pattern characters so they match literally. */
@@ -225,6 +248,18 @@ Return ONLY this JSON format: {"applicable": boolean, "confidence": number (0-10
     if (!raw) return fallback;
     
     const parsed = JSON.parse(raw);
+
+    // Validate shape before trusting values
+    if (
+      typeof parsed !== "object" ||
+      parsed === null ||
+      typeof parsed.applicable !== "boolean" ||
+      typeof parsed.confidence !== "number" ||
+      typeof parsed.reasoning !== "string"
+    ) {
+      return fallback;
+    }
+
     return {
       applicable: !!parsed.applicable,
       confidence: Math.min(Math.max(parsed.confidence ?? 0, 0), 100),
@@ -238,12 +273,26 @@ Return ONLY this JSON format: {"applicable": boolean, "confidence": number (0-10
 
 export async function POST(request: NextRequest) {
   try {
+    if (getRateLimitedIP(request)) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait a moment and try again." },
+        { status: 429, headers: { "Retry-After": "60" } }
+      );
+    }
+
     const body = await request.json();
     const { tailNumber } = body;
 
     if (!tailNumber || typeof tailNumber !== "string") {
       return NextResponse.json(
         { error: "Aircraft tail number is required." },
+        { status: 400 }
+      );
+    }
+
+    if (tailNumber.length > 10) {
+      return NextResponse.json(
+        { error: "Invalid tail number format." },
         { status: 400 }
       );
     }

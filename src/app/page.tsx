@@ -35,9 +35,19 @@ export default function Home() {
     if (saved) setTheme(saved);
 
     // Load search history
-    const savedHistory = localStorage.getItem("searchHistory");
-    if (savedHistory) {
-      setHistory(JSON.parse(savedHistory));
+    try {
+      const savedHistory = localStorage.getItem("searchHistory");
+      if (savedHistory) {
+        const parsed = JSON.parse(savedHistory);
+        if (
+          Array.isArray(parsed) &&
+          parsed.every((item) => typeof item === "string")
+        ) {
+          setHistory(parsed);
+        }
+      }
+    } catch {
+      // Ignore invalid data
     }
 
     // Keyboard shortcut: Cmd+K to focus search
@@ -53,7 +63,7 @@ export default function Home() {
     // Auto-analyze from URL parameter
     const params = new URLSearchParams(window.location.search);
     const tailParam = params.get("tail");
-    if (tailParam) {
+    if (tailParam && tailParam.length <= 10) {
       setQuery(tailParam);
       setTimeout(() => handleAnalyze(tailParam), 0);
     }

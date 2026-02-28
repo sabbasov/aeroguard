@@ -35,13 +35,14 @@ export async function fetchFAARegistry(
     if (!res.ok) return null;
 
     const html = await res.text();
+    const safeHtml = html.slice(0, 100_000); // cap at 100,000 characters
     const data: RegistryData = {};
 
     const rowRe =
       /<td[^>]*>\s*(.*?)\s*<\/td>\s*<td[^>]*>\s*(.*?)\s*<\/td>/gi;
     let match: RegExpExecArray | null;
 
-    while ((match = rowRe.exec(html)) !== null) {
+    while ((match = rowRe.exec(safeHtml)) !== null) {
       const label = match[1]
         .replace(/<[^>]*>/g, "")
         .replace(/&nbsp;/g, " ")

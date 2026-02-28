@@ -74,6 +74,15 @@ export default function Home() {
     };
 
     window.addEventListener("keydown", handleKeyDown);
+
+    // Auto-analyze from URL parameter
+    const params = new URLSearchParams(window.location.search);
+    const tailParam = params.get("tail");
+    if (tailParam) {
+      setQuery(tailParam);
+      setTimeout(() => handleAnalyze(tailParam), 0);
+    }
+
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
@@ -114,8 +123,8 @@ Top Failures: ${result.topFailures.map(f => `${f.partName} (${f.count}x)`).join(
     });
   };
 
-  async function handleAnalyze() {
-    const trimmed = query.trim();
+  async function handleAnalyze(tailOverride?: string) {
+    const trimmed = (tailOverride ?? query).trim();
     if (!trimmed) return;
 
     setLoading(true);
@@ -132,6 +141,7 @@ Top Failures: ${result.topFailures.map(f => `${f.partName} (${f.count}x)`).join(
       if (!res.ok) throw new Error(data.error ?? "Request failed");
       setResult(data);
       addToHistory(trimmed);
+      window.history.replaceState(null, '', `/?tail=${encodeURIComponent(trimmed)}`);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
@@ -296,8 +306,12 @@ Top Failures: ${result.topFailures.map(f => `${f.partName} (${f.count}x)`).join(
               type="text"
               value={query}
               onChange={(e) => {
-                setQuery(e.target.value);
+                const val = e.target.value;
+                setQuery(val);
                 setShowHistory(true);
+                if (!val) {
+                  window.history.replaceState(null, '', '/');
+                }
               }}
               onFocus={() => setShowHistory(true)}
               onBlur={() => setTimeout(() => setShowHistory(false), 200)}

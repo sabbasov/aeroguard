@@ -164,7 +164,7 @@ Top Failures: ${result.topFailures.map(f => `${f.partName} (${f.count}x)`).join(
   return (
     <div className="relative z-10 min-h-screen flex flex-col">
       <nav className="w-full border-b border-card-border bg-card-bg/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-cyan/10 border border-accent-cyan/20">
               <svg
@@ -187,7 +187,7 @@ Top Failures: ${result.topFailures.map(f => `${f.partName} (${f.count}x)`).join(
           <div className="flex items-center gap-3">
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : theme === "light" ? "system" : "dark")}
-              className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg border border-card-border bg-card-bg/50 text-foreground transition-all hover:border-accent-cyan/30 hover:bg-card-bg/80 hover:text-accent-cyan group"
+              className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-card-border bg-card-bg/50 text-foreground transition-all hover:border-accent-cyan/30 hover:bg-card-bg/80 hover:text-accent-cyan group sm:h-9 sm:w-9"
               title={`Theme: ${theme} (click to cycle)`}
             >
               {/* Sun icon - shows in light mode */}
@@ -249,18 +249,18 @@ Top Failures: ${result.topFailures.map(f => `${f.partName} (${f.count}x)`).join(
               href="https://github.com/sabbasov/aeroguard"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 rounded-lg border border-card-border bg-card-bg px-4 py-1.5 text-foreground/80 transition hover:border-accent-cyan/30 hover:text-accent-cyan"
+              className="flex shrink-0 items-center gap-2 rounded-lg border border-card-border bg-card-bg px-4 py-2 sm:py-1.5 text-foreground/80 transition hover:border-accent-cyan/30 hover:text-accent-cyan"
             >
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
               </svg>
-              GitHub
+              <span className="hidden sm:inline">GitHub</span>
             </a>
           </div>
         </div>
       </nav>
 
-      <section className="flex flex-col items-center px-6 pt-20 pb-12">
+      <section className="flex flex-col items-center px-4 pt-12 pb-12 sm:px-6 sm:pt-20">
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-accent-cyan/20 bg-accent-cyan/5 px-4 py-1.5 text-xs font-medium text-accent-cyan">
           <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent-emerald opacity-75" />
@@ -269,7 +269,7 @@ Top Failures: ${result.topFailures.map(f => `${f.partName} (${f.count}x)`).join(
           FAA Data Sync — Live
         </div>
 
-        <h1 className="max-w-2xl text-center text-4xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl">
+        <h1 className="max-w-2xl text-center text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl lg:text-5xl">
           Aviation Safety &{" "}
           <span className="bg-gradient-to-r from-accent-cyan to-accent-emerald bg-clip-text text-transparent">
             Compliance Intelligence
@@ -283,7 +283,7 @@ Top Failures: ${result.topFailures.map(f => `${f.partName} (${f.count}x)`).join(
 
         <div className="relative w-full max-w-2xl">
           <form
-            className="glass-card search-glow mt-10 flex items-center gap-3 border border-card-border px-5 py-3 transition-all"
+            className="glass-card search-glow mt-10 flex items-center gap-3 border border-card-border px-3 py-2.5 transition-all sm:px-5 sm:py-3"
             onSubmit={(e) => {
               e.preventDefault();
               handleAnalyze();
@@ -316,12 +316,12 @@ Top Failures: ${result.topFailures.map(f => `${f.partName} (${f.count}x)`).join(
               onFocus={() => setShowHistory(true)}
               onBlur={() => setTimeout(() => setShowHistory(false), 200)}
               placeholder="Search by Aircraft Tail Number (e.g. N12345)"
-              className="w-full bg-transparent text-base text-foreground placeholder-foreground/30 outline-none"
+              className="w-full min-w-0 bg-transparent text-base text-foreground placeholder-foreground/30 outline-none"
             />
             <button
               type="submit"
               disabled={loading}
-              className="shrink-0 rounded-lg bg-accent-cyan px-5 py-2 text-sm font-semibold text-background transition hover:bg-accent-cyan/90 active:scale-[0.97] disabled:opacity-50"
+              className="shrink-0 rounded-lg bg-accent-cyan px-3 py-2 text-xs font-semibold text-background transition hover:bg-accent-cyan/90 active:scale-[0.97] disabled:opacity-50 sm:px-5 sm:text-sm"
             >
               {loading ? "Scanning…" : "Analyze"}
             </button>
@@ -330,7 +330,7 @@ Top Failures: ${result.topFailures.map(f => `${f.partName} (${f.count}x)`).join(
           {/* Search History Dropdown */}
           {showHistory && history.length > 0 && (
             <div className="absolute top-full left-0 right-0 mt-1 glass-card border border-card-border z-50">
-              <div className="max-h-64 overflow-y-auto">
+              <div className="max-h-48 overflow-y-auto sm:max-h-64">
                 {history.map((item, idx) => (
                   <button
                     key={idx}
@@ -383,21 +383,21 @@ Top Failures: ${result.topFailures.map(f => `${f.partName} (${f.count}x)`).join(
           </div>
         )}
 
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-8 text-sm text-foreground/40">
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-4 gap-y-2 text-sm text-foreground/40 sm:gap-8">
           <div className="flex items-center gap-2">
             <span className="font-mono text-foreground/70">
               {stats ? stats.sdrCount.toLocaleString() : "—"}
             </span>
             <span>SDRs Indexed</span>
           </div>
-          <div className="h-4 w-px bg-card-border" />
+          <div className="hidden h-4 w-px bg-card-border sm:block" />
           <div className="flex items-center gap-2">
             <span className="font-mono text-foreground/70">
               {stats ? stats.adCount.toLocaleString() : "—"}
             </span>
             <span>Active ADs</span>
           </div>
-          <div className="h-4 w-px bg-card-border" />
+          <div className="hidden h-4 w-px bg-card-border sm:block" />
           <div className="flex items-center gap-2">
             <span className="font-mono text-foreground/70">
               {stats ? stats.aircraftTracked.toLocaleString() : "—"}
@@ -414,7 +414,7 @@ Top Failures: ${result.topFailures.map(f => `${f.partName} (${f.count}x)`).join(
       )}
 
       <section className="mx-auto w-full max-w-7xl px-6 pb-24 pt-8">
-        <div className="grid gap-6 lg:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {/* Maintenance Risk Score - Larger left column */}
           <div className="lg:col-span-1 flex flex-col">
             <div className="glass-card flex flex-col p-6 h-full">
@@ -434,7 +434,7 @@ Top Failures: ${result.topFailures.map(f => `${f.partName} (${f.count}x)`).join(
                     </svg>
                   </div>
                   <div>
-                    <h2 className="text-lg font-semibold text-foreground">
+                    <h2 className="text-base font-semibold text-foreground sm:text-lg">
                       Maintenance Risk Score
                     </h2>
                     <p className="text-xs text-foreground/40">
@@ -445,7 +445,7 @@ Top Failures: ${result.topFailures.map(f => `${f.partName} (${f.count}x)`).join(
                 {result && (
                   <button
                     onClick={copyToClipboard}
-                    className="p-2 rounded-lg hover:bg-card-bg transition text-foreground/60 hover:text-foreground"
+                    className="p-2.5 rounded-lg hover:bg-card-bg transition text-foreground/60 hover:text-foreground sm:p-2"
                     aria-label="Copy analysis to clipboard"
                     title="Copy to clipboard"
                   >
@@ -583,7 +583,7 @@ Top Failures: ${result.topFailures.map(f => `${f.partName} (${f.count}x)`).join(
                 {result.topFailures.map((f, i) => (
                   <div
                     key={f.partName}
-                    className="flex items-center justify-between rounded-lg border border-card-border bg-card-bg/50 px-4 py-3"
+                    className="flex items-center justify-between rounded-lg border border-card-border bg-card-bg/50 px-3 py-2.5 sm:px-4 sm:py-3"
                   >
                     <div className="flex items-center gap-3">
                       <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent-rose/10 text-xs font-bold text-accent-rose">
@@ -667,7 +667,7 @@ Top Failures: ${result.topFailures.map(f => `${f.partName} (${f.count}x)`).join(
                   return (
                     <div
                       key={ad.adNumber}
-                      className={`rounded-lg border ${borderColor} ${bgColor} p-4`}
+                      className={`rounded-lg border ${borderColor} ${bgColor} p-3 sm:p-4`}
                     >
                       <div className="flex items-start gap-3">
                         <div
@@ -689,7 +689,7 @@ Top Failures: ${result.topFailures.map(f => `${f.partName} (${f.count}x)`).join(
                           )}
                         </div>
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <div className="flex items-center gap-1 mb-1 flex-wrap sm:gap-2">
                             <span className={`text-xs font-bold uppercase tracking-wider ${accentColor}`}>
                               {ad.applicable ? "Applicable" : "Not Applicable"}
                             </span>
@@ -757,7 +757,7 @@ Top Failures: ${result.topFailures.map(f => `${f.partName} (${f.count}x)`).join(
       </section>
 
       <footer className="mt-auto border-t border-card-border bg-card-bg/40 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 text-xs text-foreground/30">
+        <div className="mx-auto flex max-w-7xl flex-col items-center gap-2 px-4 py-4 text-center text-xs text-foreground/30 sm:flex-row sm:justify-between sm:gap-0 sm:px-6 sm:py-5 sm:text-left">
           <span>© 2026 AeroGuard — Aviation Safety Intelligence</span>
           <div className="flex items-center gap-1.5 font-mono">
             <span

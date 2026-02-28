@@ -53,6 +53,7 @@ data.txt
 
 # FAA source spreadsheet & lookup PDFs
 Search_Results.xlsx
+*.pdf
 data/
 
 # ─────────────────────────────────────────────────────────
